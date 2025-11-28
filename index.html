@@ -3,19 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Random Sound Player</title>
+    <title>It's oh so quiet...</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>Random Sound Player</h1>
-        <p>Toggle sounds and adjust their random intervals</p>
+        <h1>so peaceful until</h1>
         
         <div class="controls">
             <div class="master-controls">
                 <button id="startBtn" class="btn btn-primary">Start</button>
                 <button id="stopBtn" class="btn btn-secondary" disabled>Stop</button>
-                <button id="testAllBtn" class="btn btn-test">Test All Sounds</button>
             </div>
             
             <div class="sound-controls">
@@ -31,16 +29,16 @@
                     <div class="controls-grid">
                         <div class="control-group">
                             <label for="metalPipeMin">Min Interval (seconds):</label>
-                            <input type="number" id="metalPipeMin" value="30" min="1" max="3600">
+                            <input type="number" id="metalPipeMin" value="120" min="1">
                         </div>
                         <div class="control-group">
                             <label for="metalPipeMax">Max Interval (seconds):</label>
-                            <input type="number" id="metalPipeMax" value="180" min="1" max="3600">
+                            <input type="number" id="metalPipeMax" value="600" min="1">
                         </div>
                         <div class="control-group">
                             <label for="metalPipeVolume">Volume:</label>
-                            <input type="range" id="metalPipeVolume" value="50" min="0" max="100">
-                            <span class="volume-display">50%</span>
+                            <input type="range" id="metalPipeVolume" value="80" min="0" max="100">
+                            <span class="volume-display">80%</span>
                         </div>
                     </div>
                 </div>
@@ -57,16 +55,16 @@
                     <div class="controls-grid">
                         <div class="control-group">
                             <label for="knockingMin">Min Interval (seconds):</label>
-                            <input type="number" id="knockingMin" value="45" min="1" max="3600">
+                            <input type="number" id="knockingMin" value="60" min="1">
                         </div>
                         <div class="control-group">
                             <label for="knockingMax">Max Interval (seconds):</label>
-                            <input type="number" id="knockingMax" value="300" min="1" max="3600">
+                            <input type="number" id="knockingMax" value="1200" min="1">
                         </div>
                         <div class="control-group">
                             <label for="knockingVolume">Volume:</label>
-                            <input type="range" id="knockingVolume" value="60" min="0" max="100">
-                            <span class="volume-display">60%</span>
+                            <input type="range" id="knockingVolume" value="80" min="0" max="100">
+                            <span class="volume-display">80%</span>
                         </div>
                     </div>
                 </div>
@@ -79,25 +77,18 @@
                 <div class="controls-grid">
                     <div class="control-group">
                         <label for="masterVolume">Master Volume:</label>
-                        <input type="range" id="masterVolume" value="70" min="0" max="100">
-                        <span class="volume-display">70%</span>
+                        <input type="range" id="masterVolume" value="80" min="0" max="100">
+                        <span class="volume-display">80%</span>
                     </div>
                     <div class="control-group">
-                        <label for="fadeIn">Fade In (ms):</label>
-                        <input type="number" id="fadeIn" value="200" min="0" max="5000">
-                    </div>
-                    <div class="control-group">
-                        <label for="fadeOut">Fade Out (ms):</label>
-                        <input type="number" id="fadeOut" value="500" min="0" max="5000">
+                        <label for="soundSeparation">Min time between different sounds (seconds):</label>
+                        <input type="number" id="soundSeparation" value="30" min="0" max="600">
                     </div>
                 </div>
             </div>
         </div>
 
-        <div class="status">
-            <div id="statusDisplay">Ready to start</div>
-            <div id="nextSoundDisplay"></div>
-        </div>
+
     </div>
 
     <script src="script.js"></script>

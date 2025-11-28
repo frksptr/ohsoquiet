@@ -8,6 +8,8 @@ class RandomSoundPlayer {
         this.timeouts = {};
         this.audioContext = null;
         this.masterGainNode = null;
+        this.lastSoundTime = 0;
+        this.lastSoundType = null;
         
         this.init();
     }
@@ -86,11 +88,7 @@ class RandomSoundPlayer {
                 const volumeElement = document.getElementById(`${soundType}Volume`);
                 const volume = volumeElement ? volumeElement.value / 100 : 0.5;
                 
-                const fadeInElement = document.getElementById('fadeIn');
-                const fadeIn = fadeInElement ? parseInt(fadeInElement.value) / 1000 : 0.2;
-                
-                gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
-                gainNode.gain.linearRampToValueAtTime(volume, this.audioContext.currentTime + fadeIn);
+                gainNode.gain.setValueAtTime(volume, this.audioContext.currentTime);
                 
                 source.start();
             }
@@ -112,15 +110,10 @@ class RandomSoundPlayer {
                 oscillator.type = type;
                 oscillator.frequency.setValueAtTime(frequency, this.audioContext.currentTime);
                 
-                const fadeIn = parseInt(document.getElementById('fadeIn').value) / 1000;
-                const fadeOut = parseInt(document.getElementById('fadeOut').value) / 1000;
-                
-                gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
-                gainNode.gain.linearRampToValueAtTime(0.3, this.audioContext.currentTime + fadeIn);
-                gainNode.gain.linearRampToValueAtTime(0, this.audioContext.currentTime + duration + fadeOut);
+                gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
                 
                 oscillator.start(this.audioContext.currentTime);
-                oscillator.stop(this.audioContext.currentTime + duration + fadeOut);
+                oscillator.stop(this.audioContext.currentTime + duration);
             }
         };
     }
@@ -161,7 +154,7 @@ class RandomSoundPlayer {
         // Master controls
         document.getElementById('startBtn').addEventListener('click', () => this.start());
         document.getElementById('stopBtn').addEventListener('click', () => this.stop());
-        document.getElementById('testAllBtn').addEventListener('click', () => this.testAllSounds());
+
 
         // Volume sliders
         document.getElementById('masterVolume').addEventListener('input', (e) => {
@@ -243,10 +236,28 @@ class RandomSoundPlayer {
     playSound(soundName) {
         if (!this.sounds[soundName] || this.sounds[soundName].length === 0) return;
 
+        // Check sound separation if this is a different sound type
+        const currentTime = Date.now();
+        const separationMs = parseInt(document.getElementById('soundSeparation').value) * 1000;
+        
+        if (this.lastSoundType && this.lastSoundType !== soundName) {
+            const timeSinceLastSound = currentTime - this.lastSoundTime;
+            if (timeSinceLastSound < separationMs) {
+                // Too soon for a different sound, reschedule
+                const delay = separationMs - timeSinceLastSound;
+                setTimeout(() => this.playSound(soundName), delay);
+                return;
+            }
+        }
+
         // Resume audio context if needed (browsers require user interaction)
         if (this.audioContext.state === 'suspended') {
             this.audioContext.resume();
         }
+
+        // Update last sound tracking
+        this.lastSoundTime = currentTime;
+        this.lastSoundType = soundName;
 
         // Visual feedback
         const soundControl = document.getElementById(`${soundName}Toggle`).closest('.sound-control');
@@ -261,8 +272,6 @@ class RandomSoundPlayer {
         
         // Play the randomly selected sound
         randomSound.play();
-
-        this.updateStatus(`Playing ${soundName.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
     }
 
     scheduleNextSound(soundName) {
@@ -293,9 +302,6 @@ class RandomSoundPlayer {
                 this.scheduleNextSound(sound);
             }
         });
-
-        this.updateStatus('Running - Random sounds will play based on your settings');
-        this.updateNextSoundDisplay();
     }
 
     stop() {
@@ -308,36 +314,11 @@ class RandomSoundPlayer {
             clearTimeout(this.timeouts[sound]);
             delete this.timeouts[sound];
         });
-
-        this.updateStatus('Stopped');
-        this.updateNextSoundDisplay();
     }
 
-    testAllSounds() {
-        ['metalPipe', 'knocking'].forEach((sound, index) => {
-            setTimeout(() => {
-                this.playSound(sound);
-            }, index * 500);
-        });
-    }
 
-    updateStatus(message) {
-        document.getElementById('statusDisplay').textContent = message;
-    }
 
-    updateNextSoundDisplay() {
-        const nextSoundDiv = document.getElementById('nextSoundDisplay');
-        if (this.isRunning) {
-            const enabledSounds = ['metalPipe', 'knocking'].filter(sound => 
-                document.getElementById(`${sound}Toggle`).checked
-            );
-            nextSoundDiv.textContent = `Active sounds: ${enabledSounds.map(s => 
-                s.replace(/([A-Z])/g, ' $1').toLowerCase()
-            ).join(', ')}`;
-        } else {
-            nextSoundDiv.textContent = '';
-        }
-    }
+
 }
 
 // Global function for test buttons
