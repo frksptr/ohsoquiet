@@ -152,8 +152,7 @@ class RandomSoundPlayer {
 
     setupEventListeners() {
         // Master controls
-        document.getElementById('startBtn').addEventListener('click', () => this.start());
-        document.getElementById('stopBtn').addEventListener('click', () => this.stop());
+        document.getElementById('toggleBtn').addEventListener('click', () => this.togglePlayback());
 
 
         // Volume sliders
@@ -289,14 +288,21 @@ class RandomSoundPlayer {
         }, interval);
     }
 
+    togglePlayback() {
+        if (this.isRunning) {
+            this.stop();
+        } else {
+            this.start();
+        }
+    }
+
     start() {
         if (!this.audioContext) {
             this.initAudioContext();
         }
 
         this.isRunning = true;
-        document.getElementById('startBtn').disabled = true;
-        document.getElementById('stopBtn').disabled = false;
+        this.updateToggleButton();
 
         // Schedule all enabled sounds
         ['metalPipe', 'knocking'].forEach(sound => {
@@ -308,14 +314,28 @@ class RandomSoundPlayer {
 
     stop() {
         this.isRunning = false;
-        document.getElementById('startBtn').disabled = false;
-        document.getElementById('stopBtn').disabled = true;
+        this.updateToggleButton();
 
         // Clear all timeouts
         Object.keys(this.timeouts).forEach(sound => {
             clearTimeout(this.timeouts[sound]);
             delete this.timeouts[sound];
         });
+    }
+
+    updateToggleButton() {
+        const toggleBtn = document.getElementById('toggleBtn');
+        const btnText = toggleBtn.querySelector('.btn-text');
+        
+        if (this.isRunning) {
+            toggleBtn.className = 'btn btn-secondary';
+            toggleBtn.setAttribute('data-state', 'running');
+            btnText.textContent = '⏹ Stop Sounds';
+        } else {
+            toggleBtn.className = 'btn btn-primary';
+            toggleBtn.setAttribute('data-state', 'stopped');
+            btnText.textContent = '▶ Start Sounds';
+        }
     }
 
 
