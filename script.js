@@ -3,8 +3,7 @@ class RandomSoundPlayer {
         this.isRunning = false;
         this.sounds = {
             metalPipe: null,
-            knocking: null,
-            bell: null
+            knocking: null
         };
         this.timeouts = {};
         this.audioContext = null;
@@ -31,12 +30,70 @@ class RandomSoundPlayer {
         }
     }
 
-    loadSounds() {
-        // Using placeholder sounds - you'll replace these with actual audio files
+    async loadSounds() {
+        try {
+            console.log('Attempting to load audio files...');
+            const metalPipe1 = await this.loadAudioFile('sounds/drop1.mp3');
+            console.log('Loaded drop1.mp3');
+            const metalPipe2 = await this.loadAudioFile('sounds/drop2.mp3');
+            console.log('Loaded drop2.mp3');
+            const knocking1 = await this.loadAudioFile('sounds/knock1.wav');
+            console.log('Loaded knock1.wav');
+            const knocking2 = await this.loadAudioFile('sounds/knock2.wav');
+            console.log('Loaded knock2.wav');
+            
+            this.sounds = {
+                metalPipe: [metalPipe1, metalPipe2],
+                knocking: [knocking1, knocking2]
+            };
+            console.log('Real sounds loaded successfully!');
+        } catch (error) {
+            console.error('Failed to load sound files:', error);
+            console.log('Falling back to synthetic sounds...');
+            // Fallback to synthetic sounds
+            this.loadSyntheticSounds();
+        }
+    }
+
+    loadSyntheticSounds() {
+        // Fallback synthetic sounds
         this.sounds = {
-            metalPipe: this.createToneSound(200, 0.1, 'sawtooth'), // Low metallic sound
-            knocking: this.createKnockingSound(),
-            bell: this.createBellSound()
+            metalPipe: [this.createToneSound(200, 0.1, 'sawtooth')],
+            knocking: [this.createKnockingSound()]
+        };
+    }
+
+    async loadAudioFile(url) {
+        const response = await fetch(url);
+        const arrayBuffer = await response.arrayBuffer();
+        const audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+        
+        // Determine sound type from URL
+        let soundType;
+        if (url.includes('drop')) soundType = 'metalPipe';
+        else if (url.includes('knock')) soundType = 'knocking';
+        
+        return {
+            play: () => {
+                const source = this.audioContext.createBufferSource();
+                const gainNode = this.audioContext.createGain();
+                
+                source.buffer = audioBuffer;
+                source.connect(gainNode);
+                gainNode.connect(this.masterGainNode);
+                
+                // Get volume from the appropriate control
+                const volumeElement = document.getElementById(`${soundType}Volume`);
+                const volume = volumeElement ? volumeElement.value / 100 : 0.5;
+                
+                const fadeInElement = document.getElementById('fadeIn');
+                const fadeIn = fadeInElement ? parseInt(fadeInElement.value) / 1000 : 0.2;
+                
+                gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+                gainNode.gain.linearRampToValueAtTime(volume, this.audioContext.currentTime + fadeIn);
+                
+                source.start();
+            }
         };
     }
 
@@ -98,36 +155,7 @@ class RandomSoundPlayer {
         };
     }
 
-    createBellSound() {
-        return {
-            play: () => {
-                if (!this.audioContext) return;
-                
-                // Create a bell-like sound with harmonics
-                const fundamental = 440;
-                const harmonics = [1, 2, 3, 4, 5];
-                
-                harmonics.forEach((harmonic, index) => {
-                    const oscillator = this.audioContext.createOscillator();
-                    const gainNode = this.audioContext.createGain();
-                    
-                    oscillator.connect(gainNode);
-                    gainNode.connect(this.masterGainNode);
-                    
-                    oscillator.type = 'sine';
-                    oscillator.frequency.setValueAtTime(fundamental * harmonic, this.audioContext.currentTime);
-                    
-                    const amplitude = 0.1 / (harmonic * harmonic); // Decreasing amplitude for higher harmonics
-                    gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
-                    gainNode.gain.linearRampToValueAtTime(amplitude, this.audioContext.currentTime + 0.1);
-                    gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 2);
-                    
-                    oscillator.start(this.audioContext.currentTime);
-                    oscillator.stop(this.audioContext.currentTime + 2);
-                });
-            }
-        };
-    }
+
 
     setupEventListeners() {
         // Master controls
@@ -142,7 +170,7 @@ class RandomSoundPlayer {
         });
 
         // Individual sound volume sliders
-        ['metalPipe', 'knocking', 'bell'].forEach(sound => {
+        ['metalPipe', 'knocking'].forEach(sound => {
             const volumeSlider = document.getElementById(`${sound}Volume`);
             volumeSlider.addEventListener('input', (e) => {
                 this.updateVolumeDisplay(e.target, `${sound}Volume`);
@@ -160,7 +188,7 @@ class RandomSoundPlayer {
         });
 
         // Toggle switches
-        ['metalPipe', 'knocking', 'bell'].forEach(sound => {
+        ['metalPipe', 'knocking'].forEach(sound => {
             document.getElementById(`${sound}Toggle`).addEventListener('change', (e) => {
                 this.updateSoundState(sound, e.target.checked);
             });
@@ -213,7 +241,7 @@ class RandomSoundPlayer {
     }
 
     playSound(soundName) {
-        if (!this.sounds[soundName]) return;
+        if (!this.sounds[soundName] || this.sounds[soundName].length === 0) return;
 
         // Resume audio context if needed (browsers require user interaction)
         if (this.audioContext.state === 'suspended') {
@@ -227,11 +255,12 @@ class RandomSoundPlayer {
             soundControl.classList.remove('sound-playing');
         }, 1000);
 
-        // Apply individual sound volume
-        const soundVolume = document.getElementById(`${soundName}Volume`).value / 100;
+        // Randomly select from available sound variations
+        const soundVariations = this.sounds[soundName];
+        const randomSound = soundVariations[Math.floor(Math.random() * soundVariations.length)];
         
-        // Play the sound
-        this.sounds[soundName].play();
+        // Play the randomly selected sound
+        randomSound.play();
 
         this.updateStatus(`Playing ${soundName.replace(/([A-Z])/g, ' $1').toLowerCase()}`);
     }
@@ -259,7 +288,7 @@ class RandomSoundPlayer {
         document.getElementById('stopBtn').disabled = false;
 
         // Schedule all enabled sounds
-        ['metalPipe', 'knocking', 'bell'].forEach(sound => {
+        ['metalPipe', 'knocking'].forEach(sound => {
             if (document.getElementById(`${sound}Toggle`).checked) {
                 this.scheduleNextSound(sound);
             }
@@ -285,7 +314,7 @@ class RandomSoundPlayer {
     }
 
     testAllSounds() {
-        ['metalPipe', 'knocking', 'bell'].forEach((sound, index) => {
+        ['metalPipe', 'knocking'].forEach((sound, index) => {
             setTimeout(() => {
                 this.playSound(sound);
             }, index * 500);
@@ -299,7 +328,7 @@ class RandomSoundPlayer {
     updateNextSoundDisplay() {
         const nextSoundDiv = document.getElementById('nextSoundDisplay');
         if (this.isRunning) {
-            const enabledSounds = ['metalPipe', 'knocking', 'bell'].filter(sound => 
+            const enabledSounds = ['metalPipe', 'knocking'].filter(sound => 
                 document.getElementById(`${sound}Toggle`).checked
             );
             nextSoundDiv.textContent = `Active sounds: ${enabledSounds.map(s => 
