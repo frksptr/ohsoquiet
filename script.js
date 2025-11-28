@@ -233,31 +233,33 @@ class RandomSoundPlayer {
         return Math.random() * (maxSeconds - minSeconds) + minSeconds;
     }
 
-    playSound(soundName) {
+    playSound(soundName, isAutomatic = false) {
         if (!this.sounds[soundName] || this.sounds[soundName].length === 0) return;
 
-        // Check sound separation if this is a different sound type
-        const currentTime = Date.now();
-        const separationMs = parseInt(document.getElementById('soundSeparation').value) * 1000;
-        
-        if (this.lastSoundType && this.lastSoundType !== soundName) {
-            const timeSinceLastSound = currentTime - this.lastSoundTime;
-            if (timeSinceLastSound < separationMs) {
-                // Too soon for a different sound, reschedule
-                const delay = separationMs - timeSinceLastSound;
-                setTimeout(() => this.playSound(soundName), delay);
-                return;
+        // Only apply sound separation for automatic scheduling, not manual tests
+        if (isAutomatic) {
+            const currentTime = Date.now();
+            const separationMs = parseInt(document.getElementById('soundSeparation').value) * 1000;
+            
+            if (this.lastSoundType && this.lastSoundType !== soundName) {
+                const timeSinceLastSound = currentTime - this.lastSoundTime;
+                if (timeSinceLastSound < separationMs) {
+                    // Too soon for a different sound, reschedule
+                    const delay = separationMs - timeSinceLastSound;
+                    setTimeout(() => this.playSound(soundName, true), delay);
+                    return;
+                }
             }
+            
+            // Update last sound tracking only for automatic sounds
+            this.lastSoundTime = currentTime;
+            this.lastSoundType = soundName;
         }
 
         // Resume audio context if needed (browsers require user interaction)
         if (this.audioContext.state === 'suspended') {
             this.audioContext.resume();
         }
-
-        // Update last sound tracking
-        this.lastSoundTime = currentTime;
-        this.lastSoundType = soundName;
 
         // Visual feedback
         const soundControl = document.getElementById(`${soundName}Toggle`).closest('.sound-control');
@@ -281,7 +283,7 @@ class RandomSoundPlayer {
         
         this.timeouts[soundName] = setTimeout(() => {
             if (this.isRunning && document.getElementById(`${soundName}Toggle`).checked) {
-                this.playSound(soundName);
+                this.playSound(soundName, true); // Mark as automatic
                 this.scheduleNextSound(soundName); // Schedule next occurrence
             }
         }, interval);
